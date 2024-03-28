@@ -97,7 +97,7 @@ internal class Radar : FeatureBase
         }
     }
 
-    public void Run()
+    public async void Run()
     {
         if (RadarDebug)
             Log.Debug($"\n\nRead Tile started");
@@ -108,7 +108,41 @@ internal class Radar : FeatureBase
         _furniture.Clear();
         _npcs.Clear();
 
-        SearchNearbyTiles(currPosition, Range);
+        HashSet<StardewValley.Object> playedObjects = new HashSet<Object>();
+
+        var items = SearchNearbyTiles(currPosition, Range, false);
+
+        var timeToWait = 300;
+        var currentTime = 0;
+
+        if (items.Count() != 0 && Delay != 0)
+        {
+            timeToWait = Delay / items.Count();
+        }
+
+        Log.Debug($"\ntime to wait: {timeToWait}, items: {items.Count()}, delay: {Delay}\n\n");
+        var currentLocation = Game1.currentLocation;
+
+        foreach (var item in items)
+        {
+            currentTime += timeToWait;
+            StardewValley.Object obj = currentLocation.getObjectAtTile((int)item.Key.X, (int)item.Key.Y);
+            if (obj != null)
+            {
+                if (!playedObjects.Contains(obj))
+                {
+                    if (CheckTileAndPlaySound(item.Key, currentLocation))
+                    {
+                        playedObjects.Add(obj);
+                    }
+                }
+            }
+            else
+            {
+                CheckTileAndPlaySound(item.Key, currentLocation);
+            }
+            await Task.Delay(timeToWait);
+        }
 
         if (RadarDebug)
             Log.Debug($"\nRead Tile stopped\n\n");
@@ -121,7 +155,7 @@ internal class Radar : FeatureBase
     /// <param name="limit">The limiting factor or simply radius of the search area.</param>
     /// <param name="playSound">True by default if False then it will not play sound and only return the list of detected tiles(for api).</param>
     /// <returns>A dictionary with all the detected tiles along with the name of the object on it and it's category.</returns>
-    public Dictionary<Vector2, (string, string)> SearchNearbyTiles(Vector2 center, int limit, bool playSound = true)
+    public Dictionary<Vector2, (string, string)> SearchNearbyTiles(Vector2 center, int limit)
     {
         var currentLocation = Game1.currentLocation;
         Dictionary<Vector2, (string, string)> detectedTiles = [];
@@ -137,17 +171,13 @@ internal class Radar : FeatureBase
         while (toSearch.Count > 0)
         {
             Vector2 item = toSearch.Dequeue();
-            if (playSound)
-                CheckTileAndPlaySound(item, currentLocation);
-            else
+            (bool, string?, string) tileInfo = CheckTile(item, currentLocation);
+            if (tileInfo.Item1 && tileInfo.Item2 != null)
             {
-                (bool, string?, string) tileInfo = CheckTile(item, currentLocation);
-                if (tileInfo.Item1 && tileInfo.Item2 != null)
-                {
-                    // Add detected tile to the dictionary
-                    detectedTiles.Add(item, (tileInfo.Item2, tileInfo.Item3));
-                }
+                // Add detected tile to the dictionary
+                detectedTiles.Add(item, (tileInfo.Item2, tileInfo.Item3));
             }
+
 
             for (int i = 0; i < 4; i++)
             {
@@ -257,7 +287,7 @@ internal class Radar : FeatureBase
         return (true, name, category.ToString());
     }
 
-    public void CheckTileAndPlaySound(Vector2 position, GameLocation currentLocation)
+    public bool ShouldPlaySound(Vector2 position, GameLocation currentLocation)
     {
         try
         {
@@ -279,10 +309,12 @@ internal class Radar : FeatureBase
                         {
                             _furniture.Add(furniture);
                             PlaySoundAt(position, objectName, category, currentLocation);
+                            return true;
                         }
                     }
                     else
                         PlaySoundAt(position, objectName, category, currentLocation);
+                    return true;
                 }
             }
             else
@@ -293,6 +325,7 @@ internal class Radar : FeatureBase
                     category ??= CATEGORY.Other;
 
                     PlaySoundAt(position, name, category, currentLocation);
+                    return true;
                 }
             }
         }
@@ -300,6 +333,7 @@ internal class Radar : FeatureBase
         {
             Log.Error($"{e.Message}\n{e.StackTrace}\n{e.Source}");
         }
+        return false;
     }
 
     public void PlaySoundAt(Vector2 position, string searchQuery, CATEGORY category, GameLocation currentLocation)
@@ -390,33 +424,33 @@ internal class Radar : FeatureBase
             soundName = $"_mono{soundName}";
 
         if (category == CATEGORY.Farmers) // Villagers and farmers
-            soundName = $"npc{soundName}";
+            soundName = $"farmer{soundName}";
         else if (category == CATEGORY.Animals) // Farm Animals
-            soundName = $"npc{soundName}";
+            soundName = $"farmanimal{soundName}";
         else if (category == CATEGORY.NPCs) // Other npcs, also includes enemies
             soundName = $"npc{soundName}";
         else if (category == CATEGORY.Water) // Water tiles
-            soundName = $"obj{soundName}";
+            soundName = $"water{soundName}";
         else if (category == CATEGORY.Furniture) // Furnitures
-            soundName = $"obj{soundName}";
+            soundName = $"furniture{soundName}";
         else if (category == CATEGORY.Other) // Other Objects
-            soundName = $"obj{soundName}";
+            soundName = $"other{soundName}";
         else if (category == CATEGORY.Crops) // Crops
-            soundName = $"obj{soundName}";
+            soundName = $"crops{soundName}";
         else if (category == CATEGORY.Trees) // Trees
-            soundName = $"obj{soundName}";
+            soundName = $"trees{soundName}";
         else if (category == CATEGORY.Buildings) // Buildings
-            soundName = $"obj{soundName}";
+            soundName = $"buildings{soundName}";
         else if (category == CATEGORY.MineItems) // Mine items
-            soundName = $"obj{soundName}";
+            soundName = $"mineitems{soundName}";
         else if (category == CATEGORY.Containers) // Chests
-            soundName = $"obj{soundName}";
+            soundName = $"chests{soundName}";
         else if (category == CATEGORY.Debris) // Grass and debris
-            soundName = $"obj{soundName}";
+            soundName = $"debris{soundName}";
         else if (category == CATEGORY.Flooring) // Flooring
-            soundName = $"obj{soundName}";
+            soundName = $"flooring{soundName}";
         else // Default
-            soundName = $"obj{soundName}";
+            soundName = $"default{soundName}";
 
         return soundName;
     }
