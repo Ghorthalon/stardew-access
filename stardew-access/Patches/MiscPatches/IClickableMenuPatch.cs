@@ -19,6 +19,7 @@ internal class IClickableMenuPatch : IPatch
         typeof(Billboard),
         typeof(CarpenterMenu),
         typeof(CharacterCustomization),
+        typeof(ChooseFromIconsMenu),
         typeof(ConfirmationDialog),
         typeof(CoopMenu),
         typeof(FarmhandMenu),
@@ -33,12 +34,14 @@ internal class IClickableMenuPatch : IPatch
         typeof(MuseumMenu),
         typeof(NumberSelectionMenu),
         typeof(PondQueryMenu),
+        typeof(PrizeTicketMenu),
         typeof(PurchaseAnimalsMenu),
         typeof(QuestContainerMenu),
         typeof(QuestLog),
         typeof(ReadyCheckDialog),
         typeof(ShopMenu),
         typeof(SpecialOrdersBoard),
+        typeof(StorageContainer),
         typeof(TailoringMenu),
         typeof(TitleMenu)
     ];
@@ -71,7 +74,7 @@ internal class IClickableMenuPatch : IPatch
         );
     }
 
-    private static void DrawHoverTextPatch(string? text,
+    private static void DrawHoverTextPatch(StringBuilder text,
                                            int moneyAmountToDisplayAtBottom = -1,
                                            string? boldTitleText = null,
                                            string? extraItemToShowIndex = null,
@@ -82,6 +85,12 @@ internal class IClickableMenuPatch : IPatch
     {
         try
         {
+            // The only case when the active menu is null (in vanilla stardew) is when a hud message with no icon is displayed.
+            if (Game1.activeClickableMenu is null) return;
+
+            if (text == null || text.Length == 0) return;
+            if (string.IsNullOrWhiteSpace(text.ToString())) return;
+
             #region Skip narrating hover info for manually patched custom menus
 
             if (Game1.activeClickableMenu != null)
@@ -94,7 +103,7 @@ internal class IClickableMenuPatch : IPatch
             }
 
             #endregion
-            
+
             #region Skip narrating hover text for certain menus
             var activeClickableMenu = Game1.activeClickableMenu?.GetType();
             var activeGameMenuPage = Game1.activeClickableMenu is GameMenu gameMenu ? gameMenu.GetCurrentPage().GetType() : null;
@@ -134,22 +143,21 @@ internal class IClickableMenuPatch : IPatch
                 if (!string.IsNullOrEmpty(boldTitleText))
                     toSpeak = $"{boldTitleText}, ";
 
-                if (text == "???")
+                if (text.ToString() == "???")
                     toSpeak = Translator.Instance.Translate("common-unknown");
-                else if (!string.IsNullOrEmpty(text))
+                else
                     toSpeak += text;
             }
 
             // To prevent it from getting conflicted by two hover texts at the same time, two separate methods are used.
             // For example, sometimes `Welcome to Pierre's` and the items in seeds shop get conflicted causing it to speak infinitely.
 
-            if (toSpeak.Length > 0)
-            {
-                if (Game1.activeClickableMenu is not null)
-                    MainClass.ScreenReader.SayWithMenuChecker(toSpeak.ToString(), true); // Menu Checker
-                else
-                    MainClass.ScreenReader.SayWithChecker(toSpeak.ToString(), true); // Normal Checker
-            }
+            if (string.IsNullOrWhiteSpace(toSpeak)) return;
+
+            if (Game1.activeClickableMenu is not null)
+                MainClass.ScreenReader.SayWithMenuChecker(toSpeak, true); // Menu Checker
+            else
+                MainClass.ScreenReader.SayWithChecker(toSpeak, true); // Normal Checker
         }
         catch (Exception e)
         {
@@ -161,7 +169,7 @@ internal class IClickableMenuPatch : IPatch
     {
         try
         {
-            Log.Debug($"Closed {__instance.GetType()} menu, performing cleanup...");
+            Log.Verbose($"IClickableMenuPatch.ExitThisMenuPatch: Closed {__instance.GetType()} menu, performing cleanup...");
             Cleanup(__instance);
         }
         catch (Exception e)

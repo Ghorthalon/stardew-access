@@ -10,6 +10,7 @@ namespace stardew_access.Utils;
 
 using Translation;
 using StardewValley.TerrainFeatures;
+using StardewValley.Menus;
 
 /// <summary>
 /// Provides methods to locate tiles of interest in various game locations that are conditional or unpredictable (I.E. not static).
@@ -36,6 +37,8 @@ using StardewValley.TerrainFeatures;
 /// The class also supports the following named locations:
 /// - Barn (and its upgraded versions)
 /// - Coop (and its upgraded versions)
+/// - Mastery Cave
+/// - Witch Hut
 ///
 /// The class does not yet support the following location types, but consider adding support in future updates:
 /// - AbandonedJojaMart
@@ -385,7 +388,7 @@ public class DynamicTiles
             var mailbox = Game1.player.mailbox;
             if (mailbox is not null && mailbox.Count > 0)
             {
-                name = Translator.Instance.Translate("tile-mail_box-unread_mail_count-prefix", new
+                name = Translator.Instance.Translate("tile_name-mail_box-unread_mail_count-prefix", new
                 {
                     mail_count = mailbox.Count,
                     content = name
@@ -480,7 +483,7 @@ public class DynamicTiles
             var mailbox = Game1.player.mailbox;
             if (mailbox is not null && mailbox.Count > 0)
             {
-                mailboxName = Translator.Instance.Translate("tile-mail_box-unread_mail_count-prefix", new
+                mailboxName = Translator.Instance.Translate("tile_name-mail_box-unread_mail_count-prefix", new
                 {
                     mail_count = mailbox.Count,
                     content = mailboxName
@@ -495,7 +498,8 @@ public class DynamicTiles
             return GetBuildingInfo(building, x, y, lessInfo);
         }
 
-        if (x == 8 && y == 7) // Speaks the Grandpa Evaluation score i.e., numbers of candles lit on the shrine after year 3
+        // Speaks the Grandpa Evaluation score i.e., numbers of candles lit on the shrine after year 3
+        if (farm.GetGrandpaShrinePosition().X == x && farm.GetGrandpaShrinePosition().Y == y)
         {
             return (Translator.Instance.Translate("dynamic_tile-farm-grandpa_shrine", new
             {
@@ -556,13 +560,9 @@ public class DynamicTiles
         {
             return ("tile_name-traveling_cart_pig", CATEGORY.NPCs);
         }
-        else if (forest.obsolete_log != null && x == 2 && y == 7) // TODO Check for conflicts
+        else if (Game1.MasterPlayer.mailReceived.Contains("raccoonTreeFallen") && x == 56 && y == 6)
         {
-            return ("item_name-log", CATEGORY.Interactables);
-        }
-        else if (forest.obsolete_log == null && x == 0 && y == 7) // TODO Check for conflicts
-        {
-            return ("entrance_name-secret_woods_entrance", CATEGORY.Doors);
+            return ("tile-forest-giant_tree_sump", forest.stumpFixed.Value ? CATEGORY.Decor : CATEGORY.Quest);
         }
 
         return (null, null);
@@ -610,6 +610,10 @@ public class DynamicTiles
         if (islandNorth.traderActivated.Value && x == 36 && y == 71)
         {
             return ("npc_name-island_trader", CATEGORY.Interactables);
+        }
+        else if (!islandNorth.caveOpened.Value && y == 47 && (x == 21 || x == 22))
+        {
+            return ("tile-resource_clump-boulder-name", CATEGORY.ResourceClumps);
         }
 
         // Return (null, null) if no relevant object is found
@@ -749,6 +753,14 @@ public class DynamicTiles
         // If a parrot perch was found at the specified tile coordinates
         if (foundPerch != null)
         {
+            if (foundPerch.upgradeName.Value == "GoldenParrot") return Translator.Instance.Translate("building-golden_parrot");
+            if (islandLocation is IslandWest islandWest)
+            {
+                if (islandWest.farmhouseMailbox.Value && foundPerch.tilePosition.X == 81 && foundPerch.tilePosition.Y == 40)
+                {
+                    return "tile_name-mail_box";
+                }
+            }
             string toSpeak = Translator.Instance.Translate("building-parrot_perch-required_nuts", new { item_count = foundPerch.requiredNuts.Value });
 
             // Return appropriate string based on the current state of the parrot perch
@@ -788,7 +800,20 @@ public class DynamicTiles
         }
         else if (parrot != null)
         {
-            return (parrot, CATEGORY.Buildings);
+            if (islandLocation is IslandWest islandWest && islandWest.farmhouseMailbox.Value && parrot == "tile_name-mail_box")
+            {
+                var mailbox = Game1.player.mailbox;
+                string content = Translator.Instance.Translate(parrot);
+                if (mailbox != null && mailbox.Count > 0)
+                {
+                    return (Translator.Instance.Translate("tile_name-mail_box-unread_mail_count-prefix", new { mail_count = mailbox.Count, content }), CATEGORY.Ready);
+                }
+                return (content, CATEGORY.Interactables);
+            }
+            else
+            {
+                return (parrot, CATEGORY.Buildings);
+            }
         }
 
         return islandLocation switch
@@ -968,6 +993,7 @@ public class DynamicTiles
     {
         object locationType = currentLocation is not null and GameLocation ? currentLocation.Name ?? "Undefined GameLocation" : currentLocation!.GetType();
         string locationName = currentLocation.Name ?? "";
+
         if (locationName.Contains("coop", StringComparison.OrdinalIgnoreCase) || locationName.Contains("barn", StringComparison.OrdinalIgnoreCase))
         {
             var feedingBenchInfo = GetFeedingBenchInfo(currentLocation, x, y);
@@ -980,6 +1006,18 @@ public class DynamicTiles
         if (locationName.Contains("witchhut", StringComparison.OrdinalIgnoreCase) && x == 4 && y == 11 && !Game1.player.mailReceived.Contains("hasPickedUpMagicInk"))
         {
             return ("item_name-magic_ink", CATEGORY.Interactables);
+        }
+
+        if (locationName.ToLower().Contains("masterycave"))
+        {
+            if (x == 10 && y == 9 && !MasteryTrackerMenu.hasCompletedAllMasteryPlaques())
+            {
+                return ("item-mastery_cave-grandpa_letter", CATEGORY.Interactables);
+            }
+            else if (x == 4 && y == 6)
+            {
+                return (Translator.Instance.Translate("dynamic_tile-mastery_cave-pedestal", new { has_hat = MasteryTrackerMenu.hasCompletedAllMasteryPlaques() ? 1 : 0 }), CATEGORY.Decor);
+            }
         }
 
         // Unimplemented locations are logged.

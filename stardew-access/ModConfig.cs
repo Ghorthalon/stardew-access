@@ -74,9 +74,9 @@ internal class ModConfig
     public Boolean WateredToggle { get; set; } = true;
 
     /// <summary>
-    /// Toggle speaking tile indexes with other info.
+    /// Toggle speaking tile indexes and object ids with other info.
     /// </summary>
-    public Boolean ReadTileIndexes { get; set; } = false;
+    public Boolean ReadTileDebug { get; set; } = false;
 
     /// <summary>
     /// Toggle speaking hoed dirt (soil) in mine shafts.
@@ -420,6 +420,8 @@ internal class ModConfig
     /// </summary>
     public KeybindList TimeNSeasonKey { get; set; } = KeybindList.Parse("Q");
 
+    public KeybindList RepeatLastTextKey { get; set; } = KeybindList.Parse("LeftAlt + Space, RightAlt + Space");
+
     /// <summary>
     /// Whether to speak 'X:' and 'Y:' along with co-ordinates or not.
     /// </summary>
@@ -456,11 +458,37 @@ internal class ModConfig
     public Boolean DisableBushVerbosity { get; set; } = false;
 
     /// <summary>
+    /// If enabled, does not speak debris descriptions.
+    /// </summary>
+    public Boolean DisableDescriptiveDebris { get; set; } = false;
+
+    /// <summary>
+    /// If enabled, doesn't speak colors for slimes and big slimes.
+    /// </summary>
+    public Boolean DisableColorfulSlime { get; set; } = false;
+
+    /// <summary>
+    /// If enabled, uses expanded color set for matching.
+    /// </summary>
+    public Boolean ExtraColors { get; set; } = false;
+
+    /// <summary>
     /// If enabled, does not pluralize inventory with fluent
     /// </summary>
     public Boolean DisableInventoryFluentPluralization { get; set; } = false;
 
     /// <summary>
+    /// <summary>
+    /// If disabled, speaks "You've got mail!" with tts instead of playing the sound.
+    /// </summary>
+    public Boolean YouveGotMailSound { get; set; } = true;
+
+    /// <summary>
+    /// <summary>
+    /// If enabled, toggles on in-game cheats / debug commands.
+    /// </summary>
+    public Boolean EnableCheats { get; set; } = false;
+
     /// Sets speech rate for the Mac TTS.
     /// </summary>
     public Single MacSpeechRate { get; set; } = 220;
@@ -477,6 +505,11 @@ internal class ModConfig
     ///  You can fix what motion type every fish has, by default every fish has a fixed motion type like for squid it's sinker, walleye it's smooth, etc. You can use a value between 0 to 4 to fix the motion. 0 indicates mixed motion type, 1 indicates art, 2 indicates smooth, 3 indicates sinker and 4 indicates floater.
     /// </summary>
     public int FixFishingMotionType { get; set; } = 999;
+
+    /// <summary>
+    /// if true, the <see cref="stardew_access.Utils.CurrentPlayer.TimeOfDay"/> will return the time in the 24-hourformat.
+    /// </summary>
+    public bool Use24HourFormat { get; set; } = false;
 
     // TODO Add the exclusion and focus list too
     // public String ExclusionList { get; set; } = "test";

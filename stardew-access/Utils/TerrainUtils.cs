@@ -1,5 +1,4 @@
 using stardew_access.Translation;
-using static stardew_access.Utils.ObjectUtils;
 using StardewValley;
 using StardewValley.TerrainFeatures;
 using System.Text;
@@ -24,13 +23,13 @@ public static class TerrainUtils
         );
     }
 
-    public static string GetDirtInfoString(HoeDirt dirt, bool ignoreIfEmpty = false)
+    public static string? GetDirtInfoString(HoeDirt dirt, bool ignoreIfEmpty = false)
     {
         var dirtDetails = GetDirtInfo(dirt);
         return GetDirtInfoString(dirtDetails, ignoreIfEmpty);
     }
 
-    public static string GetDirtInfoString((bool IsWatered, bool IsFertilized, string? CropType, bool IsReadyForHarvest, bool IsDead) dirtDetails, bool ignoreIfEmpty = false)
+    public static string? GetDirtInfoString((bool IsWatered, bool IsFertilized, string? CropType, bool IsReadyForHarvest, bool IsDead) dirtDetails, bool ignoreIfEmpty = false)
     {
         StringBuilder detailString = new();
 
@@ -55,7 +54,8 @@ public static class TerrainUtils
             detailString.Append(Translator.Instance.Translate("terrain_util-crop-soil"));
         }
 
-        return detailString.ToString().Trim();
+        string toReturn = detailString.ToString().Trim();
+        return toReturn == "" ? null : toReturn;
     }
 
     public static (string TreeType, int GrowthStage, bool IsHarvestable) GetFruitTreeInfo(FruitTree fruitTree)
@@ -86,24 +86,24 @@ public static class TerrainUtils
         return GetFruitTreeInfoString(fruitTreeDetails);
     }
 
-    public static (string TreeType, int GrowthStage, string SeedName, bool IsFertilized) GetTreeInfo(Tree tree)
+    public static (string TreeType, int GrowthStage, string SeedName, bool IsFertilized, bool isStump, bool isMossy) GetTreeInfo(Tree tree)
     {
         var treeStage = tree.growthStage.Value;
         var treeType = tree.treeType.Value;
         string seedName = ItemRegistry.GetDataOrErrorItem(tree.GetData().SeedItemId).DisplayName;
-        return (treeType, treeStage, seedName, tree.fertilized.Value);
+        return (treeType, treeStage, seedName, tree.fertilized.Value, tree.stump.Value, tree.hasMoss.Value);
     }
 
-    public static string GetTreeInfoString((string TreeType, int GrowthStage, string SeedName, bool IsFertilized) treeDetails)
+    public static string GetTreeInfoString((string TreeType, int GrowthStage, string SeedName, bool IsFertilized, bool isStump, bool isMossy) treeDetails)
     {
         string treeType = "";
         if (int.TryParse(treeDetails.TreeType, out int treeTypeInt))
         {
-            treeType = Translator.Instance.Translate("terrain_util-tree_type",
-                new { type = treeTypeInt });
-        } else {
-            treeType = Translator.Instance.Translate("terrain_util-tree_type",
-                new { type = treeDetails.TreeType });
+            treeType = Translator.Instance.Translate("terrain_util-tree_type", new { type = treeTypeInt });
+        }
+        else
+        {
+            treeType = Translator.Instance.Translate("terrain_util-tree_type", new { type = treeDetails.TreeType });
         }
         if (treeDetails.GrowthStage == 0)
         {
@@ -121,10 +121,13 @@ public static class TerrainUtils
             }
         }
 
-        string growthStage = Translator.Instance.Translate("terrain_util-tree_growth_stage",
-            new { stage = treeDetails.GrowthStage });
+        string growthStage = treeDetails.isStump
+            ? Translator.Instance.Translate("terrain_util-tree-stump")
+            : Translator.Instance.Translate("terrain_util-tree_growth_stage", new { stage = treeDetails.GrowthStage });
+        string fertilizedStatus = treeDetails.IsFertilized ? Translator.Instance.Translate("terrain_util-fertilized") + " " : "";
+        string mossyStatus = treeDetails.isMossy ? Translator.Instance.Translate("terrain_util-tree-mossy") + " " : "";
 
-        return (treeDetails.IsFertilized ? $"{Translator.Instance.Translate("terrain_util-fertilized")} ":"") + $"{treeType} {growthStage}";
+        return $"{fertilizedStatus}{mossyStatus}{treeType} {growthStage}";
     }
 
     public static string GetTreeInfoString(Tree tree)
