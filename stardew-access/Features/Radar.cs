@@ -110,7 +110,7 @@ internal class Radar : FeatureBase
 
         HashSet<StardewValley.Object> playedObjects = new HashSet<Object>();
 
-        var items = SearchNearbyTiles(currPosition, Range, false);
+        var items = SearchNearbyTiles(currPosition, Range);
 
         var timeToWait = 300;
         var currentTime = 0;
@@ -131,7 +131,7 @@ internal class Radar : FeatureBase
             {
                 if (!playedObjects.Contains(obj))
                 {
-                    if (CheckTileAndPlaySound(item.Key, currentLocation))
+                    if (ShouldPlaySound(item.Key, currentLocation))
                     {
                         playedObjects.Add(obj);
                     }
@@ -139,7 +139,7 @@ internal class Radar : FeatureBase
             }
             else
             {
-                CheckTileAndPlaySound(item.Key, currentLocation);
+                ShouldPlaySound(item.Key, currentLocation);
             }
             await Task.Delay(timeToWait);
         }

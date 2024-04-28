@@ -109,7 +109,7 @@ namespace stardew_access
         public Dictionary<Vector2, (string name, string category)> SearchNearbyTiles(
             Vector2 center,
             int limit
-        ) => new Radar().SearchNearbyTiles(center, limit, false);
+        ) => new Radar().SearchNearbyTiles(center, limit);
 
         /// <summary>
         /// Search the entire location using Breadth First Search algorithm(BFS).
